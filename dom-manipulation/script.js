@@ -219,7 +219,7 @@ async function syncQuotes() {
       populateCategories();
       showRandomQuote();
 
-      showNotification("Quotes synced with server.", "Refresh Now", () => {
+      showNotification("Quotes synced with server!", "Refresh Now", () => {
         showRandomQuote();
       });
     }

@@ -1,6 +1,8 @@
 let quotes = [];
 
-// Load quotes from localStorage on start
+// Server URL
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
+
 function loadQuotes() {
   const stored = localStorage.getItem("quotes");
   if (stored) {
@@ -8,7 +10,6 @@ function loadQuotes() {
   }
 }
 
-// Save quotes to localStorage
 function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
@@ -32,11 +33,9 @@ function showRandomQuote() {
   const quote = filteredQuotes[randomIndex];
   quoteDisplay.innerHTML = `"${quote.text}" — <em>${quote.category}</em>`;
 
-  // Save last shown quote in session storage
   sessionStorage.setItem("lastQuote", JSON.stringify(quote));
 }
 
-// Get quotes filtered by category dropdown value
 function getFilteredQuotes() {
   const selectedCategory = categoryFilter.value;
   if (selectedCategory === "all") {
@@ -48,25 +47,17 @@ function getFilteredQuotes() {
   }
 }
 
-// Populate category dropdown dynamically based on unique categories in quotes array
 function populateCategories() {
-  // Get unique categories
   const categories = [...new Set(quotes.map((q) => q.category))];
-
-  // Clear existing except the first "All Categories" option
   while (categoryFilter.options.length > 1) {
     categoryFilter.remove(1);
   }
-
-  // Add each category option
   categories.forEach((cat) => {
     const option = document.createElement("option");
     option.value = cat;
     option.textContent = cat;
     categoryFilter.appendChild(option);
   });
-
-  // Restore last selected filter from localStorage
   const lastFilter = localStorage.getItem("lastSelectedCategory");
   if (lastFilter && (lastFilter === "all" || categories.includes(lastFilter))) {
     categoryFilter.value = lastFilter;
@@ -75,14 +66,34 @@ function populateCategories() {
   }
 }
 
-// Filter quotes when category dropdown changes
 function filterQuotes() {
   localStorage.setItem("lastSelectedCategory", categoryFilter.value);
   showRandomQuote();
 }
 
-// Add new quote and update everything
-function addQuote() {
+async function postQuoteToServer(quoteObj) {
+  try {
+    const response = await fetch(SERVER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: quoteObj.category,
+        body: quoteObj.text,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to post quote to server");
+    }
+    // Optionally handle server response if needed
+    // const data = await response.json();
+  } catch (error) {
+    console.error("Error posting quote:", error);
+  }
+}
+
+async function addQuote() {
   const text = newQuoteText.value.trim();
   const category = newQuoteCategory.value.trim();
 
@@ -91,27 +102,24 @@ function addQuote() {
     return;
   }
 
-  // Add new quote to array and save
   const newQuoteObj = { text, category };
   quotes.push(newQuoteObj);
   saveQuotes();
-
-  // Update categories dropdown (in case new category)
   populateCategories();
 
-  // Reset inputs
+  // POST the new quote to the server
+  await postQuoteToServer(newQuoteObj);
+
   newQuoteText.value = "";
   newQuoteCategory.value = "";
 
   alert("Quote added successfully!");
 }
 
-// Required for checker
 function createAddQuoteForm() {
   addQuoteBtn.addEventListener("click", addQuote);
 }
 
-// Export quotes JSON
 function exportQuotesToJson() {
   const dataStr = JSON.stringify(quotes, null, 2);
   const blob = new Blob([dataStr], { type: "application/json" });
@@ -123,7 +131,6 @@ function exportQuotesToJson() {
   URL.revokeObjectURL(url);
 }
 
-// Import quotes JSON
 function importFromJsonFile(event) {
   const fileReader = new FileReader();
   fileReader.onload = function (e) {
@@ -144,7 +151,6 @@ function importFromJsonFile(event) {
   fileReader.readAsText(event.target.files[0]);
 }
 
-// Notification container setup
 const notificationContainer = document.createElement("div");
 notificationContainer.style.position = "fixed";
 notificationContainer.style.top = "0";
@@ -159,10 +165,9 @@ notificationContainer.style.zIndex = "1000";
 document.body.prepend(notificationContainer);
 
 function showNotification(message, actionText, actionCallback) {
-  notificationContainer.textContent = ""; // Clear
+  notificationContainer.textContent = "";
   const msgSpan = document.createElement("span");
   msgSpan.textContent = message;
-
   notificationContainer.appendChild(msgSpan);
 
   if (actionText && actionCallback) {
@@ -183,7 +188,6 @@ function hideNotification() {
   notificationContainer.style.display = "none";
 }
 
-// Compare two quote arrays (simple deep equality check)
 function quotesAreEqual(arr1, arr2) {
   if (arr1.length !== arr2.length) return false;
   for (let i = 0; i < arr1.length; i++) {
@@ -197,22 +201,16 @@ function quotesAreEqual(arr1, arr2) {
   return true;
 }
 
-// Fetch quotes from server and convert to app format
 async function fetchQuotesFromServer() {
-  const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
-
   const response = await fetch(SERVER_URL);
   if (!response.ok) throw new Error("Failed to fetch server data");
   const serverData = await response.json();
-
-  // Convert server data to quote format
   return serverData.map((item) => ({
     text: item.body,
     category: item.title,
   }));
 }
 
-// Sync data from server: fetch and update local storage if different
 async function syncWithServer() {
   try {
     const serverQuotes = await fetchQuotesFromServer();
@@ -232,23 +230,18 @@ async function syncWithServer() {
   }
 }
 
-// Initialize on page load
 loadQuotes();
 populateCategories();
 createAddQuoteForm();
 newQuoteBtn.addEventListener("click", showRandomQuote);
 
-// Restore last shown quote on load
 const last = sessionStorage.getItem("lastQuote");
 if (last) {
   const quote = JSON.parse(last);
   quoteDisplay.innerHTML = `"${quote.text}" — <em>${quote.category}</em>`;
 }
 
-// Listen for filter changes
 categoryFilter.addEventListener("change", filterQuotes);
 
-// Start periodic sync every 30 seconds
 setInterval(syncWithServer, 30000);
-// Initial sync
 syncWithServer();

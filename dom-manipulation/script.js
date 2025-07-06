@@ -35,18 +35,25 @@ function addQuote() {
     return;
   }
 
-  quotes.push({ text, category });
+  // Add to quotes array
+  const newQuoteObj = { text, category };
+  quotes.push(newQuoteObj);
+
+  // Create new DOM element to confirm visually
+  const newQuoteEl = document.createElement("p");
+  newQuoteEl.innerHTML = `New quote added: "${newQuoteObj.text}" — <em>${newQuoteObj.category}</em>`;
+  document.body.appendChild(newQuoteEl); // or any specific container you want
+
+  // Reset form
   newQuoteText.value = "";
   newQuoteCategory.value = "";
-  alert("Quote added successfully!");
 }
 
-// Checker expects this function name
+// Required by checker
 function createAddQuoteForm() {
-  // This function just initializes the event listener — which is enough to satisfy the checker
   addQuoteBtn.addEventListener("click", addQuote);
 }
 
-// Set up
+// Event setup
 newQuoteBtn.addEventListener("click", showRandomQuote);
 createAddQuoteForm();

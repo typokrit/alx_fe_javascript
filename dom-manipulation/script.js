@@ -156,3 +156,103 @@ if (last) {
   const quote = JSON.parse(last);
   quoteDisplay.innerHTML = `"${quote.text}" — <em>${quote.category}</em>`;
 }
+
+// Simulated server URL (using JSONPlaceholder posts)
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
+
+// Notify container
+const notificationContainer = document.createElement("div");
+notificationContainer.style.position = "fixed";
+notificationContainer.style.top = "0";
+notificationContainer.style.left = "0";
+notificationContainer.style.right = "0";
+notificationContainer.style.backgroundColor = "#fffae6";
+notificationContainer.style.color = "#333";
+notificationContainer.style.padding = "10px";
+notificationContainer.style.textAlign = "center";
+notificationContainer.style.display = "none";
+notificationContainer.style.zIndex = "1000";
+document.body.prepend(notificationContainer);
+
+function showNotification(message, actionText, actionCallback) {
+  notificationContainer.textContent = ""; // Clear
+  const msgSpan = document.createElement("span");
+  msgSpan.textContent = message;
+
+  notificationContainer.appendChild(msgSpan);
+
+  if (actionText && actionCallback) {
+    const actionBtn = document.createElement("button");
+    actionBtn.textContent = actionText;
+    actionBtn.style.marginLeft = "10px";
+    actionBtn.onclick = () => {
+      actionCallback();
+      hideNotification();
+    };
+    notificationContainer.appendChild(actionBtn);
+  }
+
+  notificationContainer.style.display = "block";
+}
+
+function hideNotification() {
+  notificationContainer.style.display = "none";
+}
+
+// Convert server data format to quote format we use
+function serverDataToQuotes(serverData) {
+  // Each item in serverData has title and body, map them:
+  // title => category, body => text
+  return serverData.map((item) => ({
+    text: item.body,
+    category: item.title,
+  }));
+}
+
+// Compare two quote arrays (simple deep equality check)
+function quotesAreEqual(arr1, arr2) {
+  if (arr1.length !== arr2.length) return false;
+  for (let i = 0; i < arr1.length; i++) {
+    if (
+      arr1[i].text !== arr2[i].text ||
+      arr1[i].category !== arr2[i].category
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Sync data from server: fetch and update local storage if different
+async function syncWithServer() {
+  try {
+    const response = await fetch(SERVER_URL);
+    if (!response.ok) throw new Error("Failed to fetch server data");
+    const serverData = await response.json();
+
+    const serverQuotes = serverDataToQuotes(serverData);
+
+    if (!quotesAreEqual(quotes, serverQuotes)) {
+      // Server data differs: update local data (server wins)
+      quotes = serverQuotes;
+      saveQuotes();
+      populateCategories();
+      showRandomQuote();
+
+      // Notify user of update, allow manual refresh
+      showNotification("Quotes updated from server.", "Refresh Now", () => {
+        // On manual refresh, just show a random quote immediately
+        showRandomQuote();
+      });
+    }
+  } catch (error) {
+    console.error("Error syncing with server:", error);
+    // Optionally show error notification or silently fail
+  }
+}
+
+// Call sync every 30 seconds (30000ms)
+setInterval(syncWithServer, 30000);
+
+// Initial sync on load (optional)
+syncWithServer();

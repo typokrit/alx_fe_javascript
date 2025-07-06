@@ -86,8 +86,6 @@ async function postQuoteToServer(quoteObj) {
     if (!response.ok) {
       throw new Error("Failed to post quote to server");
     }
-    // Optionally handle server response if needed
-    // const data = await response.json();
   } catch (error) {
     console.error("Error posting quote:", error);
   }
@@ -107,7 +105,6 @@ async function addQuote() {
   saveQuotes();
   populateCategories();
 
-  // POST the new quote to the server
   await postQuoteToServer(newQuoteObj);
 
   newQuoteText.value = "";
@@ -211,7 +208,8 @@ async function fetchQuotesFromServer() {
   }));
 }
 
-async function syncWithServer() {
+async function syncQuotes() {
+  // renamed function here
   try {
     const serverQuotes = await fetchQuotesFromServer();
 
@@ -230,6 +228,7 @@ async function syncWithServer() {
   }
 }
 
+// Init
 loadQuotes();
 populateCategories();
 createAddQuoteForm();
@@ -243,5 +242,5 @@ if (last) {
 
 categoryFilter.addEventListener("change", filterQuotes);
 
-setInterval(syncWithServer, 30000);
-syncWithServer();
+setInterval(syncQuotes, 30000);
+syncQuotes();

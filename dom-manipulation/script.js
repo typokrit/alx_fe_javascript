@@ -1,3 +1,4 @@
+// Initial array of quote objects
 let quotes = [
   {
     text: "The only limit to our realization of tomorrow is our doubts of today.",
@@ -20,12 +21,12 @@ const newQuoteCategory = document.getElementById("newQuoteCategory");
 // Function to show a random quote
 function showRandomQuote() {
   if (quotes.length === 0) {
-    quoteDisplay.textContent = "No quotes available.";
+    quoteDisplay.innerHTML = "No quotes available.";
     return;
   }
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const quote = quotes[randomIndex];
-  quoteDisplay.textContent = `"${quote.text}" — ${quote.category}`;
+  quoteDisplay.innerHTML = `"${quote.text}" — <em>${quote.category}</em>`;
 }
 
 // Function to add a new quote

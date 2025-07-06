@@ -144,23 +144,7 @@ function importFromJsonFile(event) {
   fileReader.readAsText(event.target.files[0]);
 }
 
-// Initialize on page load
-loadQuotes();
-populateCategories();
-createAddQuoteForm();
-newQuoteBtn.addEventListener("click", showRandomQuote);
-
-// Restore last shown quote on load
-const last = sessionStorage.getItem("lastQuote");
-if (last) {
-  const quote = JSON.parse(last);
-  quoteDisplay.innerHTML = `"${quote.text}" — <em>${quote.category}</em>`;
-}
-
-// Simulated server URL (using JSONPlaceholder posts)
-const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
-
-// Notify container
+// Notification container setup
 const notificationContainer = document.createElement("div");
 notificationContainer.style.position = "fixed";
 notificationContainer.style.top = "0";
@@ -199,16 +183,6 @@ function hideNotification() {
   notificationContainer.style.display = "none";
 }
 
-// Convert server data format to quote format we use
-function serverDataToQuotes(serverData) {
-  // Each item in serverData has title and body, map them:
-  // title => category, body => text
-  return serverData.map((item) => ({
-    text: item.body,
-    category: item.title,
-  }));
-}
-
 // Compare two quote arrays (simple deep equality check)
 function quotesAreEqual(arr1, arr2) {
   if (arr1.length !== arr2.length) return false;
@@ -223,36 +197,58 @@ function quotesAreEqual(arr1, arr2) {
   return true;
 }
 
+// Fetch quotes from server and convert to app format
+async function fetchQuotesFromServer() {
+  const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
+
+  const response = await fetch(SERVER_URL);
+  if (!response.ok) throw new Error("Failed to fetch server data");
+  const serverData = await response.json();
+
+  // Convert server data to quote format
+  return serverData.map((item) => ({
+    text: item.body,
+    category: item.title,
+  }));
+}
+
 // Sync data from server: fetch and update local storage if different
 async function syncWithServer() {
   try {
-    const response = await fetch(SERVER_URL);
-    if (!response.ok) throw new Error("Failed to fetch server data");
-    const serverData = await response.json();
-
-    const serverQuotes = serverDataToQuotes(serverData);
+    const serverQuotes = await fetchQuotesFromServer();
 
     if (!quotesAreEqual(quotes, serverQuotes)) {
-      // Server data differs: update local data (server wins)
       quotes = serverQuotes;
       saveQuotes();
       populateCategories();
       showRandomQuote();
 
-      // Notify user of update, allow manual refresh
       showNotification("Quotes updated from server.", "Refresh Now", () => {
-        // On manual refresh, just show a random quote immediately
         showRandomQuote();
       });
     }
   } catch (error) {
     console.error("Error syncing with server:", error);
-    // Optionally show error notification or silently fail
   }
 }
 
-// Call sync every 30 seconds (30000ms)
-setInterval(syncWithServer, 30000);
+// Initialize on page load
+loadQuotes();
+populateCategories();
+createAddQuoteForm();
+newQuoteBtn.addEventListener("click", showRandomQuote);
 
-// Initial sync on load (optional)
+// Restore last shown quote on load
+const last = sessionStorage.getItem("lastQuote");
+if (last) {
+  const quote = JSON.parse(last);
+  quoteDisplay.innerHTML = `"${quote.text}" — <em>${quote.category}</em>`;
+}
+
+// Listen for filter changes
+categoryFilter.addEventListener("change", filterQuotes);
+
+// Start periodic sync every 30 seconds
+setInterval(syncWithServer, 30000);
+// Initial sync
 syncWithServer();
